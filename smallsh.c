@@ -1,3 +1,13 @@
+/*
+References:
+asprintf(): https://c-for-dummies.com/blog/?p=3934
+            https://stackoverflow.com/questions/12746885/why-use-asprintf-instead-of-sprintf
+
+getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
+ */
+
+
+
 #define _POSIX_C_SOURCE 200809L
 #define _GNU_SOURCE
 #include <stdlib.h>
@@ -43,6 +53,9 @@ int main(int argc, char *argv[])
     
     size_t nwords = wordsplit(line);
     for (size_t i = 0; i < nwords; ++i) {
+      if (strcmp(words[i], "exit") == 0) {
+        printf("EXIT!");
+      }
       fprintf(stderr, "Word %zu: %s\n", i, words[i]);
       char *exp_word = expand(words[i]);
       free(words[i]);
@@ -171,12 +184,28 @@ expand(char const *word)
   build_str(NULL, NULL);
   build_str(pos, start);
   while (c) {
-    if (c == '!') build_str("<BGPID>", NULL);
-    else if (c == '$') build_str("<PID>", NULL);
-    else if (c == '?') build_str("<STATUS>", NULL);
-    else if (c == '{') {
+    if (c == '!'){
+      build_str("<BGPID>", NULL);
+    
+    }else if (c == '$'){
+      size_t pid = getpid();
+      char *pid_str = NULL;
+      asprintf(&pid_str, "%li", pid);
+      build_str("<PID: ", NULL); 
+      build_str(pid_str, NULL);
+      free(pid_str);  //need to free pointer 
+      build_str(">", NULL);
+
+    }else if (c == '?'){
+      build_str("<STATUS>", NULL);
+    }else if (c == '{') {
+      char var_name[20];
+      strcpy(var_name, start+2);
+      var_name[strlen(var_name)-1] = '\0';  //Remove ending '}'
+      char *env = getenv(var_name);
+      
       build_str("<Parameter: ", NULL);
-      build_str(start + 2, end - 1);
+      build_str(env, NULL);
       build_str(">", NULL);
     }
     pos = end;
