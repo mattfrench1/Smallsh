@@ -43,24 +43,53 @@ int main(int argc, char *argv[])
   for (;;) {
 //prompt:;
     /* TODO: Manage background processes */
+     
+    //pid_t spawnpid = -5;
+    //spawnpid = fork();
 
     /* TODO: prompt */
     if (input == stdin) {  //Interactive
-
+      printf("$");
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
     if (line_len < 0) err(1, "%s", input_fn);
     
+    //printf("INPUT: %s\n", line);
+    
+   
+    //fork(); 
+
     size_t nwords = wordsplit(line);
     for (size_t i = 0; i < nwords; ++i) {
-      if (strcmp(words[i], "exit") == 0) {
-        printf("EXIT!");
+      if (strcmp(words[i], "exit") == 0 && i == 0) {
+        exit(0);
       }
-      fprintf(stderr, "Word %zu: %s\n", i, words[i]);
+
+      if (strcmp(words[i], "cd") == 0 && i == 0) {
+        if (nwords == 1) {  //if no arg with cd, then cd home
+           char *home_env = getenv("HOME");
+           printf("HOME: %s\n", home_env);
+           char cwd[1024];
+           getcwd(cwd, sizeof(cwd));
+           printf("WE ARE HERE: %s\n", cwd);
+           chdir(home_env);
+
+           char nwd[1024];
+           getcwd(nwd, sizeof(nwd));
+           printf("WE ARE NOW HERE: %s\n", nwd);
+        }else if (nwords == 2) {
+          printf("SECOND: %s\n", words[1]);
+          
+        }else{
+          errx(1, "too many arguments");        
+        }
+      }
+      //fprintf(stderr, "Word %zu: %s\n", i, words[i]);
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
-      fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
+      //fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
+      fprintf(stderr, "%s\n", words[i]);
     }
   }
 }
@@ -183,6 +212,7 @@ expand(char const *word)
   char c = param_scan(pos, &start, &end);
   build_str(NULL, NULL);
   build_str(pos, start);
+
   while (c) {
     if (c == '!'){
       build_str("<BGPID>", NULL);
