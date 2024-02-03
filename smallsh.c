@@ -25,6 +25,9 @@ getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
+char * build_str(char const *start, char const *end);
+
+int status = 0;
 
 int main(int argc, char *argv[])
 {
@@ -60,36 +63,89 @@ int main(int argc, char *argv[])
     //fork(); 
 
     size_t nwords = wordsplit(line);
-    for (size_t i = 0; i < nwords; ++i) {
-      if (strcmp(words[i], "exit") == 0 && i == 0) {
-        exit(0);
-      }
+  
+    if (nwords > 0){
+      if (strcmp(words[0], "exit") == 0) {
+        exit(status);
 
-      if (strcmp(words[i], "cd") == 0 && i == 0) {
-        if (nwords == 1) {  //if no arg with cd, then cd home
-           char *home_env = getenv("HOME");
-           printf("HOME: %s\n", home_env);
-           char cwd[1024];
-           getcwd(cwd, sizeof(cwd));
-           printf("WE ARE HERE: %s\n", cwd);
-           chdir(home_env);
+      }else if (strcmp(words[0], "cd") == 0) {
+        if (nwords == 1) {
+          char *home_env = getenv("HOME");
+          printf("HOME: %s\n", home_env);
+          char cwd[1024];
+          getcwd(cwd, sizeof(cwd));
+          printf("WE ARE HERE: %s\n", cwd);
+          chdir(home_env);
 
-           char nwd[1024];
-           getcwd(nwd, sizeof(nwd));
-           printf("WE ARE NOW HERE: %s\n", nwd);
+          char nwd[1024];
+          getcwd(nwd, sizeof(nwd));
+          printf("WE ARE NOW HERE: %s\n", nwd);
+
         }else if (nwords == 2) {
-          printf("SECOND: %s\n", words[1]);
-          
-        }else{
-          errx(1, "too many arguments");        
+          build_str(NULL, NULL);
+          //char *new_env = getenv(words[1]);
+          //printf("NEW ENV: %s\n", new_env);
+          char cwd[1024];
+          getcwd(cwd, sizeof(cwd));
+         
+          build_str(cwd, NULL);
+          build_str("/", NULL);
+         
+          char *new_env = build_str(words[1], NULL);
+        
+          printf("WE ARE HERE: %s\n", cwd);
+
+          int chdir_result = chdir(new_env);
+
+          if (chdir_result != 0) {
+            errx(1, "invalid directory");
+          }
+
+          char nwd[1024];
+          getcwd(nwd, sizeof(nwd));
+          printf("WE ARE NOW HERE: %s\n", nwd);
+
+        }else {
+          errx(1, "too many arguments");
         }
-      }
+      }else{
+        fork();
+
+    
+    for (size_t i = 0; i < nwords; ++i) {
+      //if (strcmp(words[i], "exit") == 0 && i == 0) {
+      //  exit(0);
+      //}
+
+      //else if (strcmp(words[i], "cd") == 0 && i == 0) {
+       // if (nwords == 1) {  //if no arg with cd, then cd home
+        //   char *home_env = getenv("HOME");
+        //   printf("HOME: %s\n", home_env);
+         //  char cwd[1024];
+          // getcwd(cwd, sizeof(cwd));
+           //printf("WE ARE HERE: %s\n", cwd);
+          // chdir(home_env);
+
+          // char nwd[1024];
+          // getcwd(nwd, sizeof(nwd));
+          // printf("WE ARE NOW HERE: %s\n", nwd);
+       // }else if (nwords == 2) {
+         // printf("SECOND: %s\n", words[1]);
+          
+       // }else{
+        //  errx(1, "too many arguments");        
+       // }
+     // } else {
+      //  fork();
+     // }
       //fprintf(stderr, "Word %zu: %s\n", i, words[i]);
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
       //fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
       fprintf(stderr, "%s\n", words[i]);
+    }
+    }
     }
   }
 }
@@ -227,7 +283,13 @@ expand(char const *word)
       build_str(">", NULL);
 
     }else if (c == '?'){
-      build_str("<STATUS>", NULL);
+      build_str("<STATUS: ", NULL);
+      char *status_str = NULL;
+      asprintf(&status_str, "%d", status);
+      build_str(status_str, NULL);
+      free(status_str);
+      build_str(">", NULL);
+
     }else if (c == '{') {
       char var_name[20];
       strcpy(var_name, start+2);
