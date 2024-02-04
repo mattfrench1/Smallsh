@@ -29,6 +29,7 @@ char * expand(char const *word);
 char * build_str(char const *start, char const *end);
 
 int status = 0;
+int exec_err = 0;
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +54,10 @@ int main(int argc, char *argv[])
      
     //pid_t spawnpid = -5;
     //spawnpid = fork();
+
+    //if (feof(input) == 0) {   //exit with status 0 once end of file is reached
+    //  exit(0);
+   // }
 
     /* TODO: prompt */
     if (input == stdin) {  //Interactive
@@ -117,14 +122,15 @@ int main(int argc, char *argv[])
           build_str(NULL, NULL);
           //char *new_env = getenv(words[1]);
           //printf("NEW ENV: %s\n", new_env);
-          //char cwd[1024];
-          //getcwd(cwd, sizeof(cwd));
+          char cwd[1024];
+          getcwd(cwd, sizeof(cwd));
          
-          //build_str(cwd, NULL);
+          build_str(cwd, NULL);
 
           //build_str("/", NULL);
          
           char *new_env = build_str(words[1], NULL);
+          //printf("ENV: %s\n", new_env);
         
           //printf("WE ARE HERE: %s\n", cwd);
 
@@ -142,6 +148,7 @@ int main(int argc, char *argv[])
           errx(1, "too many arguments");
         }
       }else{
+        //printf("FORKING!\n");
         spawnpid = fork();
         
         switch (spawnpid) {
@@ -168,6 +175,8 @@ int main(int argc, char *argv[])
             //for (size_t i = 0; i < nwords; i++) {
             //  printf("WORDS: %s\n", words[i]);
            // }
+
+            /*
             build_str(NULL, NULL);
             build_str("/bin/", NULL);
             char *exec_cmd = build_str(words[0], NULL);
@@ -182,31 +191,47 @@ int main(int argc, char *argv[])
             for (size_t i = 1; i <= nwords; i++) {
               newargv[i] = words[i];
             }
-            execv(newargv[0], newargv);
-            perror("execv");
-            exit(2);
+            exec_err = execv(newargv[0], newargv);
+            //perror("execv");
+            //exit(2);
             
 
 
             }else{
             char *newargv[] = {exec_cmd, NULL};
-            execv(newargv[0], newargv);
-            perror("execv");
-            exit(2);
+            exec_err = execv(newargv[0], newargv);
+            //perror("execv");
+            //exit(2);
             
 
 
             }
             
-            break;
-           // for (size_t i = 0; i < nwords; ++i) {
-           //   char *exp_word = expand(words[i]);
-           //   free(words[i]);
-           //   words[i] = exp_word;
-           //   fprintf(stderr, "%s\n", words[i]);
+            if (exec_err != 0) {
+            for (size_t i = 0; i < nwords; ++i) {
+              char *exp_word = expand(words[i]);
+              free(words[i]);
+              words[i] = exp_word;
+              fprintf(stderr, "%s\n", words[i]);
+            }
+            }
+            */
+
+            char *newargv[nwords+1];
+            for (size_t i = 0; i < nwords; i++) {
+              newargv[i] = words[i];
+            }
+            newargv[nwords] = NULL;
+
+           // for (size_t i = 0; i < nwords+1; i++) {
+           //   printf("ARR: %s\n", newargv[i]);
            // }
 
-            //break;
+            execvp(newargv[0], newargv);
+            perror("execvp");
+            exit(2);
+
+            break;
                   }
            default: {
             spawnpid = waitpid(spawnpid, &childStatus, 0);
@@ -256,6 +281,9 @@ int main(int argc, char *argv[])
     }
     }
   }
+  goto exit;
+exit:;  
+  return errno ? -1: 0;
 }
 
 char *words[MAX_WORDS] = {0};
