@@ -61,10 +61,14 @@ int main(int argc, char *argv[])
 
     /* TODO: prompt */
     if (input == stdin) {  //Interactive
-      printf("$");
+      printf("$!");
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
-    if (line_len < 0) err(1, "%s", input_fn);
+    //printf("LINE_LEN: %lu\n", line_len);
+    if (line_len < 0)  {
+      //err(1, "%s", input_fn);
+      break;
+    }
     
     //printf("INPUT: %s\n", line);
     
@@ -281,9 +285,7 @@ int main(int argc, char *argv[])
     }
     }
   }
-  goto exit;
-exit:;  
-  return errno ? -1: 0;
+   
 }
 
 char *words[MAX_WORDS] = {0};
