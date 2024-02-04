@@ -17,6 +17,7 @@ getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -31,6 +32,9 @@ int status = 0;
 
 int main(int argc, char *argv[])
 {
+  pid_t spawnpid = -5;
+  int childStatus;
+
   FILE *input = stdin;
   char *input_fn = "(stdin)";
   if (argc == 2) {
@@ -65,6 +69,21 @@ int main(int argc, char *argv[])
     size_t nwords = wordsplit(line);
   
     if (nwords > 0){
+      
+      //char *first_word = words[0];
+      
+      //if (first_word[0] == '_') {
+      //  char replaced_word[strlen(first_word)];
+      //  int j = 0;
+      //  for (int i = 1; i < strlen(first_word); i++){
+      //    replaced_word[j] = first_word[i];
+      //    j ++;
+      //  }
+      //  free(words[0]);
+      //  words[0] = replaced_word;
+        //printf("NEW WORD: %s\n", words[0]);
+     // }
+
       if (strcmp(words[0], "exit") == 0) {
         if (nwords == 1) {
           exit(status);
@@ -123,10 +142,84 @@ int main(int argc, char *argv[])
           errx(1, "too many arguments");
         }
       }else{
-        fork();
+        spawnpid = fork();
+        
+        switch (spawnpid) {
+          case -1:{
+            errx(1, "fork failed");
+            break;
+                  }
+
+          case 0: {
+            //char *first_word = words[0];
+      
+            //if (first_word[0] == '_') {
+            //char replaced_word[strlen(first_word)];
+            //int j = 0;
+            //for (int i = 1; i < strlen(first_word); i++){
+            //  replaced_word[j] = first_word[i];
+            //  j ++;
+           // }
+            //free(words[0]);
+            //printf("NEW: %s\n", replaced_word);
+            //words[0] = replaced_word;
+           // }
+
+            //for (size_t i = 0; i < nwords; i++) {
+            //  printf("WORDS: %s\n", words[i]);
+           // }
+            build_str(NULL, NULL);
+            build_str("/bin/", NULL);
+            char *exec_cmd = build_str(words[0], NULL);
+
+            if (strcmp(words[0], "echo") == 0) {
+            //char *exec_cmd = build_str(words[0], NULL);
+            //char *newargv[] = {exec_cmd, NULL};
+            char *newargv[nwords+1];
+            newargv[0] = exec_cmd;
+            newargv[nwords] = NULL;
+
+            for (size_t i = 1; i <= nwords; i++) {
+              newargv[i] = words[i];
+            }
+            execv(newargv[0], newargv);
+            perror("execv");
+            exit(2);
+            
+
+
+            }else{
+            char *newargv[] = {exec_cmd, NULL};
+            execv(newargv[0], newargv);
+            perror("execv");
+            exit(2);
+            
+
+
+            }
+            
+            break;
+           // for (size_t i = 0; i < nwords; ++i) {
+           //   char *exp_word = expand(words[i]);
+           //   free(words[i]);
+           //   words[i] = exp_word;
+           //   fprintf(stderr, "%s\n", words[i]);
+           // }
+
+            //break;
+                  }
+           default: {
+            spawnpid = waitpid(spawnpid, &childStatus, 0);
+            break;
+                    }
+        }
+
+
+
+
 
     
-    for (size_t i = 0; i < nwords; ++i) {
+//    for (size_t i = 0; i < nwords; ++i) {
       //if (strcmp(words[i], "exit") == 0 && i == 0) {
       //  exit(0);
       //}
@@ -153,12 +246,13 @@ int main(int argc, char *argv[])
       //  fork();
      // }
       //fprintf(stderr, "Word %zu: %s\n", i, words[i]);
-      char *exp_word = expand(words[i]);
-      free(words[i]);
-      words[i] = exp_word;
+//      char *exp_word = expand(words[i]);
+//      free(words[i]);
+//      words[i] = exp_word;
       //fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
-      fprintf(stderr, "%s\n", words[i]);
-    }
+//      fprintf(stderr, "%s\n", words[i]);
+//    }
+
     }
     }
   }
