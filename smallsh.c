@@ -66,34 +66,48 @@ int main(int argc, char *argv[])
   
     if (nwords > 0){
       if (strcmp(words[0], "exit") == 0) {
-        exit(status);
+        if (nwords == 1) {
+          exit(status);
+        } else if (nwords == 2) {
+            int int_val = atoi(words[1]);
+            if (int_val == 0 && strcmp(words[1], "0") != 0) {
+              errx(1, "given exit status is not an int value");
+            } else {
+              exit(int_val);
+            }
+        } else {
+          errx(1, "too many arguments");
+        }
+       
+        
 
       }else if (strcmp(words[0], "cd") == 0) {
         if (nwords == 1) {
           char *home_env = getenv("HOME");
-          printf("HOME: %s\n", home_env);
-          char cwd[1024];
-          getcwd(cwd, sizeof(cwd));
-          printf("WE ARE HERE: %s\n", cwd);
+          //printf("HOME: %s\n", home_env);
+          //char cwd[1024];
+          //getcwd(cwd, sizeof(cwd));
+          //printf("WE ARE HERE: %s\n", cwd);
           chdir(home_env);
 
-          char nwd[1024];
-          getcwd(nwd, sizeof(nwd));
-          printf("WE ARE NOW HERE: %s\n", nwd);
+          //char nwd[1024];
+          //getcwd(nwd, sizeof(nwd));
+          //printf("WE ARE NOW HERE: %s\n", nwd);
 
         }else if (nwords == 2) {
           build_str(NULL, NULL);
           //char *new_env = getenv(words[1]);
           //printf("NEW ENV: %s\n", new_env);
-          char cwd[1024];
-          getcwd(cwd, sizeof(cwd));
+          //char cwd[1024];
+          //getcwd(cwd, sizeof(cwd));
          
-          build_str(cwd, NULL);
-          build_str("/", NULL);
+          //build_str(cwd, NULL);
+
+          //build_str("/", NULL);
          
           char *new_env = build_str(words[1], NULL);
         
-          printf("WE ARE HERE: %s\n", cwd);
+          //printf("WE ARE HERE: %s\n", cwd);
 
           int chdir_result = chdir(new_env);
 
@@ -101,9 +115,9 @@ int main(int argc, char *argv[])
             errx(1, "invalid directory");
           }
 
-          char nwd[1024];
-          getcwd(nwd, sizeof(nwd));
-          printf("WE ARE NOW HERE: %s\n", nwd);
+          //char nwd[1024];
+          //getcwd(nwd, sizeof(nwd));
+          //printf("WE ARE NOW HERE: %s\n", nwd);
 
         }else {
           errx(1, "too many arguments");
@@ -277,10 +291,10 @@ expand(char const *word)
       size_t pid = getpid();
       char *pid_str = NULL;
       asprintf(&pid_str, "%li", pid);
-      build_str("<PID: ", NULL); 
+      //build_str("<PID: ", NULL); 
       build_str(pid_str, NULL);
       free(pid_str);  //need to free pointer 
-      build_str(">", NULL);
+      //build_str(">", NULL);
 
     }else if (c == '?'){
       build_str("<STATUS: ", NULL);
@@ -296,9 +310,9 @@ expand(char const *word)
       var_name[strlen(var_name)-1] = '\0';  //Remove ending '}'
       char *env = getenv(var_name);
       
-      build_str("<Parameter: ", NULL);
+      //build_str("<Parameter: ", NULL);
       build_str(env, NULL);
-      build_str(">", NULL);
+      //build_str(">", NULL);
     }
     pos = end;
     c = param_scan(pos, &start, &end);
