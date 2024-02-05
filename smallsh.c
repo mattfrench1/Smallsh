@@ -82,6 +82,10 @@ int main(int argc, char *argv[])
       free(words[i]);
       words[i] = exp_word;
     }
+
+   // for (size_t i = 0; i < nwords; i++) {
+   //   printf("VAL: %s\n", words[i]);
+   // }
   
   
 
@@ -110,13 +114,28 @@ int main(int argc, char *argv[])
             if (int_val == 0 && strcmp(words[1], "0") != 0) {
               errx(1, "given exit status is not an int value");
             } else {
+              status = int_val;
+
+              //for (size_t i = 0; i < nwords; i++) {
+              //char *exp_word = expand(words[i]);  //Update status in words
+              //free(words[i]);
+              //words[i] = exp_word;
+              //}
+              
+              //for (size_t i = 0; i < nwords; i++) {
+              //  printf("VAL: %s\n", words[i]);
+              //}
+  
+
               exit(int_val);
             }
         } else {
           errx(1, "too many arguments");
         }
        
-        
+      
+
+
 
       }else if (strcmp(words[0], "cd") == 0) {
         if (nwords == 1) {
@@ -239,6 +258,22 @@ int main(int argc, char *argv[])
            // for (size_t i = 0; i < nwords+1; i++) {
            //   printf("ARR: %s\n", newargv[i]);
            // }
+
+            if (strcmp(newargv[0], "_exit") == 0){
+              int int_val = atoi(newargv[1]);
+              if (int_val == 0 && strcmp(newargv[1], "0") != 0) {
+                errx(1, "given exit status is not an int value");
+              }
+              status = int_val;
+
+              //for (size_t i = 0; i < nwords; i++) {
+              //char *exp_word = expand(words[i]);  //Update status in words
+              //free(words[i]);
+              //words[i] = exp_word;
+              //}
+              
+              exit(status);
+            }
 
             execvp(newargv[0], newargv);
             perror("execvp");
@@ -430,12 +465,12 @@ expand(char const *word)
       //build_str(">", NULL);
 
     }else if (c == '?'){
-      build_str("<STATUS: ", NULL);
+      //build_str("<STATUS: ", NULL);
       char *status_str = NULL;
       asprintf(&status_str, "%d", status);
       build_str(status_str, NULL);
       free(status_str);
-      build_str(">", NULL);
+      //build_str(">", NULL);
 
     }else if (c == '{') {
       char var_name[20];
