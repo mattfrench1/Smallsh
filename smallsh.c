@@ -32,7 +32,7 @@ int status = 0;
 int exec_err = 0;
 int childStatus;
 pid_t spawnpid = -5;
-char *background_process = "";
+int background_process = 0;
 int background_flag = 0;
 
 int main(int argc, char *argv[])
@@ -286,6 +286,7 @@ int main(int argc, char *argv[])
               
            //   exit(status);
           //  }
+  
 
             execvp(newargv[0], newargv);
             perror("execvp");
@@ -297,13 +298,59 @@ int main(int argc, char *argv[])
             if (background_flag == 0) {
             spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
             }
+
+            //printf("MADE IT TO HERE");
+
             if (WIFEXITED(childStatus)) {
+              //printf("BACKGROUND PROCESS: %d\n", background_process);
+
               status = WEXITSTATUS(childStatus);
+              background_process = spawnpid;
+              //printf("BACKGROUND PROCESS: %d\n", background_process);
+              printf("USING EXPANSION: %s\n", expand("$!"));
+
+             // for (size_t i = 0; i < nwords; i ++) {
+              //  if (words[i] != NULL){
+              //    char *exp_word = expand(words[i]);  //replace words with expanded words
+              //    free(words[i]);
+              //    words[i] = exp_word;
+            //    }
+             // }
+
+              //for (size_t i = 0; i < nwords; i++) {
+                //printf("VAL: %s\n", words[i]);
+              //}
+              
+              //printf("MADE IT TO HERE");
             }else{
+              //printf("MADE IT TO HERE");
               status = WTERMSIG(childStatus) + 128;
+              //background_process = spawnpid;
+
+              //for (size_t i = 0; i < nwords; i ++) {
+                //if (words[i] != NULL){
+                  //char *exp_word = expand(words[i]);  //replace words with expanded words
+                  //free(words[i]);
+                  //words[i] = exp_word;
+                //}
+             
+              //for (size_t i = 0; i < nwords; i++) {
+              //  printf("VAL: %s\n", words[i]);
+              //}
+  
+
+              //}
+              //printf("BACKGROUND PROCESS: %d\n", background_process);
               //printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
             }
+            
             //printf("CHILD STATUS: %d\n", childStatus);
+            //
+
+            for (size_t i = 0; i < nwords; i++) {   //clean out words
+              free(words[i]);
+              words[i] = NULL;
+            }
             break;
                     }
         }
@@ -475,8 +522,15 @@ expand(char const *word)
   while (c) {
     if (c == '!'){
       
+      char *background_proc_str = NULL;
+      if (background_process == 0) {  //No background = empty string
+        build_str("", NULL);
+      }else{
       
-      build_str(background_process, NULL);
+      asprintf(&background_proc_str, "%d", background_process);
+      build_str(background_proc_str, NULL);
+      free(background_proc_str);
+      }
      
     
     }else if (c == '$'){
