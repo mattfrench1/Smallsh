@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     /* TODO: prompt */
     if (input == stdin) {  //Interactive
-      printf("$!");
+      printf("$");
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
     //printf("LINE_LEN: %lu\n", line_len);
@@ -76,8 +76,17 @@ int main(int argc, char *argv[])
     //fork(); 
 
     size_t nwords = wordsplit(line);
+
+    for (size_t i = 0; i < nwords; i++) {
+      char *exp_word = expand(words[i]);  //replace words with expanded words
+      free(words[i]);
+      words[i] = exp_word;
+    }
   
+  
+
     if (nwords > 0){
+   
       
       //char *first_word = words[0];
       
