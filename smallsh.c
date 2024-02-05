@@ -480,7 +480,7 @@ expand(char const *word)
       //build_str(">", NULL);
 
     }else if (c == '{') {
-      char var_name[20];
+      char var_name[1024];
       strcpy(var_name, start+2);
       var_name[strlen(var_name)-1] = '\0';  //Remove ending '}'
       char *env = getenv(var_name);
