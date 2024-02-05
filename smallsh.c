@@ -30,11 +30,13 @@ char * build_str(char const *start, char const *end);
 
 int status = 0;
 int exec_err = 0;
+int childStatus;
+pid_t spawnpid = -5;
 
 int main(int argc, char *argv[])
 {
-  pid_t spawnpid = -5;
-  int childStatus;
+  //pid_t spawnpid = -5;
+  //int childStatus;
 
   FILE *input = stdin;
   char *input_fn = "(stdin)";
@@ -65,7 +67,7 @@ int main(int argc, char *argv[])
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
     //printf("LINE_LEN: %lu\n", line_len);
-    if (line_len < 0)  {
+    if (line_len < 0 || feof(input) != 0)  {
       //err(1, "%s", input_fn);
       break;
     }
@@ -283,6 +285,8 @@ int main(int argc, char *argv[])
                   }
            default: {
             spawnpid = waitpid(spawnpid, &childStatus, 0);
+            WIFEXITED(childStatus);
+            //printf("CHILD STATUS: %d\n", childStatus);
             break;
                     }
         }
@@ -467,7 +471,8 @@ expand(char const *word)
     }else if (c == '?'){
       //build_str("<STATUS: ", NULL);
       char *status_str = NULL;
-      asprintf(&status_str, "%d", status);
+      //asprintf(&status_str, "%d", status);
+      asprintf(&status_str, "%d", childStatus);
       build_str(status_str, NULL);
       free(status_str);
       //build_str(">", NULL);
