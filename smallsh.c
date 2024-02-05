@@ -32,6 +32,8 @@ int status = 0;
 int exec_err = 0;
 int childStatus;
 pid_t spawnpid = -5;
+char *background_process = "";
+int background_flag = 0;
 
 int main(int argc, char *argv[])
 {
@@ -69,6 +71,7 @@ int main(int argc, char *argv[])
     //printf("LINE_LEN: %lu\n", line_len);
     if (line_len < 0 || feof(input) != 0)  {
       //err(1, "%s", input_fn);
+      exit(0);
       break;
     }
     
@@ -80,13 +83,18 @@ int main(int argc, char *argv[])
     size_t nwords = wordsplit(line);
 
     for (size_t i = 0; i < nwords; i++) {
+      if (strcmp(words[i], "&") == 0) {
+        background_flag = 1;           //set background process flag
+        words[i] = NULL;
+      }else{
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
       words[i] = exp_word;
+      }
     }
 
-   // for (size_t i = 0; i < nwords; i++) {
-   //   printf("VAL: %s\n", words[i]);
+    //for (size_t i = 0; i < nwords; i++) {
+    //  printf("VAL: %s\n", words[i]);
    // }
   
   
@@ -286,8 +294,14 @@ int main(int argc, char *argv[])
             break;
                   }
            default: {
-            spawnpid = waitpid(spawnpid, &childStatus, 0);
-            status = WEXITSTATUS(childStatus);
+            if (background_flag == 0) {
+            spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
+            }
+            if (WIFEXITED(childStatus)) {
+              status = WEXITSTATUS(childStatus);
+            }else{
+              printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
+            }
             //printf("CHILD STATUS: %d\n", childStatus);
             break;
                     }
@@ -459,7 +473,10 @@ expand(char const *word)
 
   while (c) {
     if (c == '!'){
-      build_str("<BGPID>", NULL);
+      
+      
+      build_str(background_process, NULL);
+     
     
     }else if (c == '$'){
       size_t pid = getpid();
