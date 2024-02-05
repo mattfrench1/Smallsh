@@ -497,9 +497,9 @@ expand(char const *word)
       //build_str(">", NULL);
 
     }else if (c == '{') {
-      char var_name[1024];
-      strcpy(var_name, start+2);
-      var_name[strlen(var_name)-1] = '\0';  //Remove ending '}'
+      //build_str(start+2, NULL);
+      char *var_name = build_str(start+2, end-1);  //Grab variable name
+      build_str(NULL, NULL);   //Rest build_str
       char *env = getenv(var_name);
       
       //build_str("<Parameter: ", NULL);
