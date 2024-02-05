@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             if (int_val == 0 && strcmp(words[1], "0") != 0) {
               errx(1, "given exit status is not an int value");
             } else {
-              status = int_val;
+              //status = int_val;
 
               //for (size_t i = 0; i < nwords; i++) {
               //char *exp_word = expand(words[i]);  //Update status in words
@@ -153,21 +153,23 @@ int main(int argc, char *argv[])
           //printf("WE ARE NOW HERE: %s\n", nwd);
 
         }else if (nwords == 2) {
+          //system("ls");
           build_str(NULL, NULL);
           //char *new_env = getenv(words[1]);
           //printf("NEW ENV: %s\n", new_env);
-          char cwd[1024];
-          getcwd(cwd, sizeof(cwd));
-         
-          build_str(cwd, NULL);
-
-          //build_str("/", NULL);
-         
-          char *new_env = build_str(words[1], NULL);
+          
+          //following lines currenntly work
+          //char cwd[1024];
+          //getcwd(cwd, sizeof(cwd));
+          //build_str(cwd, NULL);
+          //build_str("/", NULL);  //dont need
+          //char *new_env = build_str(words[1], NULL);
+          
           //printf("ENV: %s\n", new_env);
         
           //printf("WE ARE HERE: %s\n", cwd);
-
+          
+          char *new_env = words[1];
           int chdir_result = chdir(new_env);
 
           if (chdir_result != 0) {
@@ -261,12 +263,12 @@ int main(int argc, char *argv[])
            //   printf("ARR: %s\n", newargv[i]);
            // }
 
-            if (strcmp(newargv[0], "_exit") == 0){
-              int int_val = atoi(newargv[1]);
-              if (int_val == 0 && strcmp(newargv[1], "0") != 0) {
-                errx(1, "given exit status is not an int value");
-              }
-              status = int_val;
+            //if (strcmp(newargv[0], "_exit") == 0){
+            //  int int_val = atoi(newargv[1]);
+            //  if (int_val == 0 && strcmp(newargv[1], "0") != 0) {
+            //    errx(1, "given exit status is not an int value");
+            //  }
+              //status = int_val;
 
               //for (size_t i = 0; i < nwords; i++) {
               //char *exp_word = expand(words[i]);  //Update status in words
@@ -274,8 +276,8 @@ int main(int argc, char *argv[])
               //words[i] = exp_word;
               //}
               
-              exit(status);
-            }
+           //   exit(status);
+          //  }
 
             execvp(newargv[0], newargv);
             perror("execvp");
@@ -285,7 +287,7 @@ int main(int argc, char *argv[])
                   }
            default: {
             spawnpid = waitpid(spawnpid, &childStatus, 0);
-            WIFEXITED(childStatus);
+            status = WEXITSTATUS(childStatus);
             //printf("CHILD STATUS: %d\n", childStatus);
             break;
                     }
@@ -472,7 +474,7 @@ expand(char const *word)
       //build_str("<STATUS: ", NULL);
       char *status_str = NULL;
       //asprintf(&status_str, "%d", status);
-      asprintf(&status_str, "%d", childStatus);
+      asprintf(&status_str, "%d", status);
       build_str(status_str, NULL);
       free(status_str);
       //build_str(">", NULL);
