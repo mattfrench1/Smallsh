@@ -300,7 +300,8 @@ int main(int argc, char *argv[])
             if (WIFEXITED(childStatus)) {
               status = WEXITSTATUS(childStatus);
             }else{
-              printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
+              status = WTERMSIG(childStatus) + 128;
+              //printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
             }
             //printf("CHILD STATUS: %d\n", childStatus);
             break;
