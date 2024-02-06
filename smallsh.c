@@ -33,7 +33,7 @@ int exec_err = 0;
 int childStatus;
 pid_t spawnpid = -5;
 int background_process = 0;
-int background_flag = 0;
+int background_flag;
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +53,8 @@ int main(int argc, char *argv[])
   char *line = NULL;
   size_t n = 0;
   for (;;) {
+
+    background_flag = 0;
 
     if (feof(input)) {
       exit(0);
@@ -87,20 +89,26 @@ int main(int argc, char *argv[])
     //printf("INPUT: %s\n", line);
     
    
-    //fork(); 
+    //fork();
 
+    
+
+    
     size_t nwords = wordsplit(line);
+    
+    
+
+    if (strcmp(words[nwords-1], "&") == 0) {
+      background_flag = 1;     //Set background flag
+      words[nwords-1] = NULL;
+      nwords --;
+    }
 
     for (size_t i = 0; i < nwords; i++) {
-      if (strcmp(words[i], "&") == 0) {
-        background_flag = 1;           //set background process flag
-        words[i] = NULL;
-
-      }else{
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
       words[i] = exp_word;
-      }
+      
     }
 
     //for (size_t i = 0; i < nwords; i++) {
@@ -297,23 +305,48 @@ int main(int argc, char *argv[])
            default: {
             if (background_flag == 0) {
             spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
-            }
-
-            //printf("MADE IT TO HERE");
-
+            
             if (WIFSTOPPED(childStatus)) {
               fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
             }
 
-            if (WIFSIGNALED(childStatus)) {
-              //printf("WIFSIGNALED");
-            }
 
-            if (WIFEXITED(childStatus)) {
+             if (WIFEXITED(childStatus)) {
               //printf("BACKGROUND PROCESS: %d\n", background_process);
 
               status = WEXITSTATUS(childStatus);
-              background_process = spawnpid;
+             }
+
+            if (WIFSIGNALED(childStatus)){
+              //printf("MADE IT TO HERE");
+              status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+              }
+
+
+
+            }else{
+
+            //printf("BACKGROUND FLAG NOT SET");
+            
+            background_process = spawnpid;
+
+            }
+
+            //printf("MADE IT TO HERE");
+
+            //if (WIFSTOPPED(childStatus)) {
+            //  fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+           // }
+
+            //if (WIFSIGNALED(childStatus)) {
+              //printf("WIFSIGNALED");
+           // }
+           
+           // if (WIFEXITED(childStatus)) {
+              //printf("BACKGROUND PROCESS: %d\n", background_process);
+
+             // status = WEXITSTATUS(childStatus);
+              //background_process = spawnpid;
               //printf("BACKGROUND PROCESS: %d\n", background_process);
               //printf("USING EXPANSION: %s\n", expand("$!"));
 
@@ -330,13 +363,13 @@ int main(int argc, char *argv[])
               //}
               
               //printf("MADE IT TO HERE");
-            }   //Removed an else here
+            //}   //Removed an else here
 
 
-            if (WIFSIGNALED(childStatus)){
+            //if (WIFSIGNALED(childStatus)){
               //printf("MADE IT TO HERE");
-              status = WTERMSIG(childStatus) + 128;    //Only use if signaled
-              }
+              //status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+              //}
               //background_process = spawnpid;
 
               //for (size_t i = 0; i < nwords; i ++) {
@@ -373,6 +406,7 @@ int main(int argc, char *argv[])
               free(words[i]);
               words[i] = NULL;
             }
+           
 
         }
 
