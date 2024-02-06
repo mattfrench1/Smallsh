@@ -53,6 +53,11 @@ int main(int argc, char *argv[])
   char *line = NULL;
   size_t n = 0;
   for (;;) {
+
+    if (feof(input)) {
+      exit(0);
+    }
+
 //prompt:;
     /* TODO: Manage background processes */
      
@@ -69,9 +74,13 @@ int main(int argc, char *argv[])
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
     //printf("LINE_LEN: %lu\n", line_len);
-    if (line_len < 0 || feof(input) != 0)  {
+
+    //printf("EOF INPUT: %d\n", feof(input));
+    //printf("EOF STDIN: %d\n", feof(stdin));
+
+    if (line_len < 0)  {
       //err(1, "%s", input_fn);
-      exit(0);
+                          //hand eof here?
       break;
     }
     
@@ -86,6 +95,7 @@ int main(int argc, char *argv[])
       if (strcmp(words[i], "&") == 0) {
         background_flag = 1;           //set background process flag
         words[i] = NULL;
+
       }else{
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
@@ -204,17 +214,7 @@ int main(int argc, char *argv[])
           case 0: {
             //char *first_word = words[0];
       
-            //if (first_word[0] == '_') {
-            //char replaced_word[strlen(first_word)];
-            //int j = 0;
-            //for (int i = 1; i < strlen(first_word); i++){
-            //  replaced_word[j] = first_word[i];
-            //  j ++;
-           // }
-            //free(words[0]);
-            //printf("NEW: %s\n", replaced_word);
-            //words[0] = replaced_word;
-           // }
+            
 
             //for (size_t i = 0; i < nwords; i++) {
             //  printf("WORDS: %s\n", words[i]);
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
           //  }
   
 
-            execvp(newargv[0], newargv);
+            execvp(newargv[0], newargv);   //Success here means child exited normally
             perror("execvp");
             exit(2);
 
@@ -301,13 +301,21 @@ int main(int argc, char *argv[])
 
             //printf("MADE IT TO HERE");
 
+            if (WIFSTOPPED(childStatus)) {
+              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+            }
+
+            if (WIFSIGNALED(childStatus)) {
+              //printf("WIFSIGNALED");
+            }
+
             if (WIFEXITED(childStatus)) {
               //printf("BACKGROUND PROCESS: %d\n", background_process);
 
               status = WEXITSTATUS(childStatus);
               background_process = spawnpid;
               //printf("BACKGROUND PROCESS: %d\n", background_process);
-              printf("USING EXPANSION: %s\n", expand("$!"));
+              //printf("USING EXPANSION: %s\n", expand("$!"));
 
              // for (size_t i = 0; i < nwords; i ++) {
               //  if (words[i] != NULL){
@@ -322,9 +330,13 @@ int main(int argc, char *argv[])
               //}
               
               //printf("MADE IT TO HERE");
-            }else{
+            }   //Removed an else here
+
+
+            if (WIFSIGNALED(childStatus)){
               //printf("MADE IT TO HERE");
-              status = WTERMSIG(childStatus) + 128;
+              status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+              }
               //background_process = spawnpid;
 
               //for (size_t i = 0; i < nwords; i ++) {
@@ -342,17 +354,26 @@ int main(int argc, char *argv[])
               //}
               //printf("BACKGROUND PROCESS: %d\n", background_process);
               //printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
-            }
+            
             
             //printf("CHILD STATUS: %d\n", childStatus);
             //
 
-            for (size_t i = 0; i < nwords; i++) {   //clean out words
+           // for (size_t i = 0; i < nwords; i++) {   //clean out words
+           //   free(words[i]);
+           //   words[i] = NULL;
+           // }
+            
+            
+            break;
+                    }
+
+
+           for (size_t i = 0; i < nwords; i++) {   //clean out words
               free(words[i]);
               words[i] = NULL;
             }
-            break;
-                    }
+
         }
 
 
