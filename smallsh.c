@@ -32,6 +32,7 @@ int status = 0;
 int exec_err = 0;
 int childStatus;
 pid_t spawnpid = -5;
+
 int background_process = 0;
 int background_flag;
 
@@ -62,6 +63,25 @@ int main(int argc, char *argv[])
 
 //prompt:;
     /* TODO: Manage background processes */
+
+    waitpid(0, &childStatus, WNOHANG | WUNTRACED);
+
+    if (WIFSTOPPED(childStatus)) {
+      fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+
+    }
+
+    if (WIFSIGNALED(childStatus)) {
+      status = WTERMSIG(childStatus);
+      fprintf(stderr, "Child process %d done. Signaled %d.\n", spawnpid, status);
+
+    }
+
+    if (WIFEXITED(childStatus)) {
+      status = WEXITSTATUS(childStatus);
+      fprintf(stderr, "Child process %d done. Exit status %d.\n", spawnpid, status);
+
+    }
      
     //pid_t spawnpid = -5;
     //spawnpid = fork();
@@ -307,7 +327,7 @@ int main(int argc, char *argv[])
             spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
             
             if (WIFSTOPPED(childStatus)) {
-              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+              //fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
             }
 
 
