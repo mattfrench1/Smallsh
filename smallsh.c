@@ -150,6 +150,7 @@ int main(int argc, char *argv[])
         if (i+1 < nwords) {
           redirection_symbols[j] = words[i];
           redirection_files[j] = words[i+1];
+         
           words[i] = NULL;
           j ++;
           redirection_flag = 1;
@@ -172,13 +173,18 @@ int main(int argc, char *argv[])
         }
       }
     
-    redirection_arr_size = j;
-    for (int i = 0; i < redirection_arr_size; i++) {
-      printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
-    }
     
     }
     }
+
+    //printf("REDIRECTION FILE: %s\n", redirection_files[0]);
+
+    redirection_arr_size = j;
+    //printf("REDIRECTIOM ARR SIZE: %d\n", redirection_arr_size);
+    //for (int i = 0; i < redirection_arr_size; i++) {
+     // printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
+    //}
+
 
     //for (size_t i = 0; i < nwords; i++) {
     //  printf("VAL: %s\n", words[i]);
@@ -343,9 +349,9 @@ int main(int argc, char *argv[])
             */
 
             if (redirection_flag != 0) {   //use redirection commands
-            for (int i = 0; i < redirection_arr_size; i++) {
-              printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
-            }
+            //for (int i = 0; i < redirection_arr_size; i++) {
+              //printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
+            //}
             
 
             }
