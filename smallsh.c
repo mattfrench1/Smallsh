@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
                   }
            default: {
             if (background_flag == 0) {
-            spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
+            spawnpid = waitpid(spawnpid, &childStatus, WUNTRACED);    //only wait if background process flag not set
             
             if (WIFSTOPPED(childStatus)) {
               fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
@@ -418,7 +418,7 @@ int main(int argc, char *argv[])
 
        
             
-            background_process = spawnpid;
+            //background_process = spawnpid;
             if (WIFSTOPPED(childStatus)) {
               fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
 
@@ -432,6 +432,7 @@ int main(int argc, char *argv[])
 
 
             }
+            background_process = spawnpid;
 
             //printf("MADE IT TO HERE");
 
