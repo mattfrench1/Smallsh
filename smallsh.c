@@ -64,10 +64,16 @@ int main(int argc, char *argv[])
 //prompt:;
     /* TODO: Manage background processes */
 
-    waitpid(0, &childStatus, WNOHANG | WUNTRACED);
+    int waitpid_res = waitpid(0, &childStatus, WNOHANG | WUNTRACED);
+    //printf("WAITPID_RES: %d\n", waitpid_res);
+
+    if (waitpid_res > 0) {
+
+
 
     if (WIFSTOPPED(childStatus)) {
       fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+      kill(spawnpid, SIGCONT);
 
     }
 
@@ -81,6 +87,7 @@ int main(int argc, char *argv[])
       status = WEXITSTATUS(childStatus);
       fprintf(stderr, "Child process %d done. Exit status %d.\n", spawnpid, status);
 
+    }
     }
      
     //pid_t spawnpid = -5;
@@ -118,17 +125,21 @@ int main(int argc, char *argv[])
     
     
 
+    if (words[nwords-1] != NULL) {
     if (strcmp(words[nwords-1], "&") == 0) {
       background_flag = 1;     //Set background flag
       words[nwords-1] = NULL;
       nwords --;
     }
+    }
 
     for (size_t i = 0; i < nwords; i++) {
+      if (words[i] != NULL) {
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
       words[i] = exp_word;
       
+    }
     }
 
     //for (size_t i = 0; i < nwords; i++) {
@@ -153,6 +164,10 @@ int main(int argc, char *argv[])
       //  words[0] = replaced_word;
         //printf("NEW WORD: %s\n", words[0]);
      // }
+
+      if (words[0] == NULL) {
+        continue;
+      }
 
       if (strcmp(words[0], "exit") == 0) {
         if (nwords == 1) {
@@ -327,7 +342,9 @@ int main(int argc, char *argv[])
             spawnpid = waitpid(spawnpid, &childStatus, 0);    //only wait if background process flag not set
             
             if (WIFSTOPPED(childStatus)) {
-              //fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+
+              kill(spawnpid, SIGCONT);
             }
 
 
@@ -338,7 +355,7 @@ int main(int argc, char *argv[])
              }
 
             if (WIFSIGNALED(childStatus)){
-              //printf("MADE IT TO HERE");
+          
               status = WTERMSIG(childStatus) + 128;    //Only use if signaled
               }
 
@@ -346,9 +363,20 @@ int main(int argc, char *argv[])
 
             }else{
 
-            //printf("BACKGROUND FLAG NOT SET");
+       
             
             background_process = spawnpid;
+            if (WIFSTOPPED(childStatus)) {
+              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+
+              kill(spawnpid, SIGCONT);
+            }
+
+            if (WIFSIGNALED(childStatus)){
+          
+              status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+              }
+
 
             }
 
