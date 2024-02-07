@@ -35,6 +35,11 @@ pid_t spawnpid = -5;
 
 int background_process = 0;
 int background_flag;
+int redirection_flag;
+int redirection_arr_size;
+
+char *redirection_symbols[MAX_WORDS];
+char *redirection_files[MAX_WORDS];
 
 int main(int argc, char *argv[])
 {
@@ -56,6 +61,7 @@ int main(int argc, char *argv[])
   for (;;) {
 
     background_flag = 0;
+    redirection_flag = 0;
 
     if (feof(input)) {
       exit(0);
@@ -133,12 +139,44 @@ int main(int argc, char *argv[])
     }
     }
 
+    int j = 0;
     for (size_t i = 0; i < nwords; i++) {
       if (words[i] != NULL) {
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
       words[i] = exp_word;
-      
+
+      if (strcmp(words[i], "<") == 0){
+        if (i+1 < nwords) {
+          redirection_symbols[j] = words[i];
+          redirection_files[j] = words[i+1];
+          words[i] = NULL;
+          j ++;
+          redirection_flag = 1;
+        }
+      }else if (strcmp(words[i], ">") == 0) {
+        if (i+1 < nwords) {
+          redirection_symbols[j] = words[i];
+          redirection_files[j] = words[i+1];
+          words[i] = NULL;
+          j ++;
+          redirection_flag = 1;
+        }
+      }else if (strcmp(words[i], ">>") == 0) {
+        if (i+1 < nwords) {
+          redirection_symbols[j] = words[i];
+          redirection_files[j] = words[i+1];
+          words[i] = NULL;
+          j ++;
+          redirection_flag = 1;
+        }
+      }
+    
+    redirection_arr_size = j;
+    for (int i = 0; i < redirection_arr_size; i++) {
+      printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
+    }
+    
     }
     }
 
@@ -303,6 +341,15 @@ int main(int argc, char *argv[])
             }
             }
             */
+
+            if (redirection_flag != 0) {   //use redirection commands
+            for (int i = 0; i < redirection_arr_size; i++) {
+              printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
+            }
+            
+
+            }
+
 
             char *newargv[nwords+1];
             for (size_t i = 0; i < nwords; i++) {
