@@ -401,13 +401,27 @@ int main(int argc, char *argv[])
                 exit(2);
                }
                 close(new_fd);
+
+              }else if (strcmp(redirection_symbols[i], ">>") == 0) {
+                int new_fd = open(redirection_files[i], O_WRONLY | O_CREAT | O_APPEND, 0777);
+
+               if (new_fd == -1) {
+                  perror("cannot open file");
+                  exit(1);
+                }
+
+               int dup_res = dup2(new_fd, 1);
+               if (dup_res == -1) {
+                perror("new file dupe()");
+                exit(2);
+               }
+                close(new_fd);
+
               }
 
             }
            
-            for (int i = 0; i < nwords; i++){
-              printf("WORDS: %s\n", words[i]);
-            }
+            
             execvp(words[0], words);
             perror("execvp");
             exit(2);
