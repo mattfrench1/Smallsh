@@ -106,7 +106,8 @@ int main(int argc, char *argv[])
 
     /* TODO: prompt */
     if (input == stdin) {  //Interactive
-      printf("$");
+      char *ps1 = getenv("PS1");
+      fprintf(stderr, "%s", ps1);
     }
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
     //printf("LINE_LEN: %lu\n", line_len);
@@ -184,26 +185,18 @@ int main(int argc, char *argv[])
       if (strcmp(words[0], "exit") == 0) {
         if (nwords == 1) {
           exit(status);
+
         } else if (nwords == 2) {
             int int_val = atoi(words[1]);
             if (int_val == 0 && strcmp(words[1], "0") != 0) {
               errx(1, "given exit status is not an int value");
             } else {
-              //status = int_val;
-
-              //for (size_t i = 0; i < nwords; i++) {
-              //char *exp_word = expand(words[i]);  //Update status in words
-              //free(words[i]);
-              //words[i] = exp_word;
-              //}
-              
-              //for (size_t i = 0; i < nwords; i++) {
-              //  printf("VAL: %s\n", words[i]);
-              //}
+             
   
 
               exit(int_val);
             }
+
         } else {
           errx(1, "too many arguments");
         }
