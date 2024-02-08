@@ -18,6 +18,7 @@ getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
 #include <ctype.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -139,51 +140,18 @@ int main(int argc, char *argv[])
     }
     }
 
-    int j = 0;
+   
     for (size_t i = 0; i < nwords; i++) {
       if (words[i] != NULL) {
       char *exp_word = expand(words[i]);  //replace words with expanded words
       free(words[i]);
       words[i] = exp_word;
 
-      if (strcmp(words[i], "<") == 0){
-        if (i+1 < nwords) {
-          redirection_symbols[j] = words[i];
-          redirection_files[j] = words[i+1];
-         
-          words[i] = NULL;
-          j ++;
-          redirection_flag = 1;
-        }
-      }else if (strcmp(words[i], ">") == 0) {
-        if (i+1 < nwords) {
-          redirection_symbols[j] = words[i];
-          redirection_files[j] = words[i+1];
-          words[i] = NULL;
-          j ++;
-          redirection_flag = 1;
-        }
-      }else if (strcmp(words[i], ">>") == 0) {
-        if (i+1 < nwords) {
-          redirection_symbols[j] = words[i];
-          redirection_files[j] = words[i+1];
-          words[i] = NULL;
-          j ++;
-          redirection_flag = 1;
-        }
+    
       }
-    
-    
-    }
     }
 
-    //printf("REDIRECTION FILE: %s\n", redirection_files[0]);
-
-    redirection_arr_size = j;
-    //printf("REDIRECTIOM ARR SIZE: %d\n", redirection_arr_size);
-    //for (int i = 0; i < redirection_arr_size; i++) {
-     // printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
-    //}
+    
 
 
     //for (size_t i = 0; i < nwords; i++) {
@@ -347,12 +315,88 @@ int main(int argc, char *argv[])
             }
             }
             */
+            
+            
+            int j = 0;
+            for (size_t i = 0; i < nwords; i++) {
+              if (words[i] != NULL) {
+
+                if (strcmp(words[i], "<") == 0){
+                  if (i+1 < nwords) {
+                    redirection_symbols[j] = words[i];
+          
+                    redirection_files[j] = words[i+1];
+
+          
+        
+                  words[i] = NULL;
+                  words[i+1] = NULL;
+                  j ++;
+                  redirection_flag = 1;
+                  }
+
+              }else if (strcmp(words[i], ">") == 0) {
+                if (i+1 < nwords) {
+                  redirection_symbols[j] = words[i];
+                  redirection_files[j] = words[i+1];
+                  words[i] = NULL;
+                  words[i+1] = NULL;
+                  j ++;
+                  redirection_flag = 1;
+                }
+              }else if (strcmp(words[i], ">>") == 0) {
+                if (i+1 < nwords) {
+                  redirection_symbols[j] = words[i];
+                  redirection_files[j] = words[i+1];
+                  words[i] = NULL;
+                  words[i+1] = NULL;
+                  j ++;
+                  redirection_flag = 1;
+                }
+              }
+    
+    
+            }
+          }
+          
+
+            redirection_arr_size = j;
+            //printf("REDIRECTIOM ARR SIZE: %d\n", redirection_arr_size);
+            //for (int i = 0; i < redirection_arr_size; i++) {
+            //  printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
+            //}
+
+
 
             if (redirection_flag != 0) {   //use redirection commands
-            //for (int i = 0; i < redirection_arr_size; i++) {
-              //printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
-            //}
-            
+            for (int i = 0; i < redirection_arr_size; i++) {
+              if (strcmp(redirection_symbols[i], "<") == 0){
+                
+                
+                int new_fd = open(redirection_files[i], O_RDONLY);
+                
+                if (new_fd == -1) {
+                  perror("cannot open file");
+                  exit(1);
+                }
+                
+                int dup_res = dup2(new_fd, 0);
+                if (dup_res == -1){
+                  perror("new file dupe()");
+                  exit(2);
+                }
+             
+                close(new_fd);
+          
+              }
+            }
+           
+            for (int i = 0; i < nwords; i++){
+              printf("WORDS: %s\n", words[i]);
+            }
+            execvp(words[0], words);
+            perror("execvp");
+            exit(2);
 
             }
 
