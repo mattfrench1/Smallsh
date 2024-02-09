@@ -19,6 +19,7 @@ getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
 #include <string.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -38,9 +39,18 @@ int background_process = 0;
 int background_flag;
 int redirection_flag;
 int redirection_arr_size;
+int sigint_flag = 0;
 
 char *redirection_symbols[MAX_WORDS];
 char *redirection_files[MAX_WORDS];
+
+struct sigaction sh_sigs = {0}, ignore_action = {0};
+
+
+void handle_SIGINT(int signo){
+  sigint_flag = 1;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -105,21 +115,81 @@ int main(int argc, char *argv[])
    // }
 
     /* TODO: prompt */
+prompt:;
+    sigint_flag = 0;
     if (input == stdin) {  //Interactive
       char *ps1 = getenv("PS1");
       fprintf(stderr, "%s", ps1);
+
+      //struct sigaction sh_sigs = {0}, ignore_action = {0};
+      sh_sigs.sa_handler = handle_SIGINT;
+      sigfillset(&sh_sigs.sa_mask);
+      sh_sigs.sa_flags = 0;
+      
+      sigaction(SIGINT, &sh_sigs, NULL);
+      
+     // ssize_t line_len = getline(&line, &n, input);
+     // clearerr(input);
+     // errno = 0;
+
+    //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
+    
+     // if (sigint_flag != 0 && line_len < 0){
+     //   fprintf(stderr, "/n");
+     //   goto prompt;
+     // }
+
+      
+      ignore_action.sa_handler = SIG_IGN;
+
+      sigaction(SIGTSTP, &ignore_action, NULL); //ignore
+      sigaction(SIGINT, &ignore_action, NULL);
+     
+    
+      
+      
+
     }
+
+  
+    //sigint_flag = 0;
+    //sh_sigs.sa_handler = handle_SIGINT;
+    //sh_sigs.sa_handler = handle_SIGINT;
+    //sigfillset(&sh_sigs.sa_mask);
+    //sh_sigs.sa_flags = 0;
+    //sigaction(SIGINT, &sh_sigs, NULL);
+
+
+
+    
+    
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
+    //fprintf(stderr,"LINE LEN: %lu\n", line_len);
+
+    //ignore_action.sa_handler = SIG_IGN;
+    //sigaction(SIGINT, &ignore_action, NULL);
+    
+    //reset clearerr/erro
+    //clearerr(input);
+    //errno = 0;
+    //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
+    
+    //if (sigint_flag != 0 && line_len < 0){
+     // goto prompt;
+   // }
+
     //printf("LINE_LEN: %lu\n", line_len);
 
     //printf("EOF INPUT: %d\n", feof(input));
     //printf("EOF STDIN: %d\n", feof(stdin));
+
 
     if (line_len < 0)  {
       //err(1, "%s", input_fn);
                           //hand eof here?
       break;
     }
+    
     
     //printf("INPUT: %s\n", line);
     
@@ -308,7 +378,11 @@ int main(int argc, char *argv[])
             }
             }
             */
-            
+           
+            //Reset signals
+            sigaction(SIGINT, &sh_sigs, NULL);
+            sigaction(SIGTSTP , &sh_sigs, NULL);
+
             
             int j = 0;
             for (size_t i = 0; i < nwords; i++) {
