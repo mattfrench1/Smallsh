@@ -121,29 +121,33 @@ prompt:;
       char *ps1 = getenv("PS1");
       fprintf(stderr, "%s", ps1);
 
-      //struct sigaction sh_sigs = {0}, ignore_action = {0};
+      
       sh_sigs.sa_handler = handle_SIGINT;
       sigfillset(&sh_sigs.sa_mask);
       sh_sigs.sa_flags = 0;
       
       sigaction(SIGINT, &sh_sigs, NULL);
+      ignore_action.sa_handler = SIG_IGN;
+      sigaction(SIGTSTP, &ignore_action, NULL);
+
       
-     // ssize_t line_len = getline(&line, &n, input);
-     // clearerr(input);
-     // errno = 0;
+      ssize_t line_len = getline(&line, &n, input);
+      clearerr(input);
+      errno = 0;
 
     //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
     
-     // if (sigint_flag != 0 && line_len < 0){
-     //   fprintf(stderr, "/n");
-     //   goto prompt;
-     // }
+      if (sigint_flag != 0 && line_len < 0){
+        fprintf(stderr, "\n");
+        goto prompt;
+      }
 
       
-      ignore_action.sa_handler = SIG_IGN;
+      //ignore_action.sa_handler = SIG_IGN;
 
-      sigaction(SIGTSTP, &ignore_action, NULL); //ignore
+      //sigaction(SIGTSTP, &ignore_action, NULL); //ignore
       sigaction(SIGINT, &ignore_action, NULL);
+      goto linecheck;
      
     
       
@@ -164,6 +168,7 @@ prompt:;
     
     
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
+    
     //fprintf(stderr,"LINE LEN: %lu\n", line_len);
 
     //ignore_action.sa_handler = SIG_IGN;
@@ -183,7 +188,7 @@ prompt:;
     //printf("EOF INPUT: %d\n", feof(input));
     //printf("EOF STDIN: %d\n", feof(stdin));
 
-
+linecheck:;
     if (line_len < 0)  {
       //err(1, "%s", input_fn);
                           //hand eof here?
