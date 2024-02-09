@@ -44,12 +44,16 @@ int sigint_flag = 0;
 char *redirection_symbols[MAX_WORDS];
 char *redirection_files[MAX_WORDS];
 
-struct sigaction sh_sigs = {0}, ignore_action = {0};
+struct sigaction sigint_sa = {0}, sigint_ignore_action = {0};
+struct sigaction sigtstp_sa = {0}, sigtstp_ignore_action = {0};
+struct sigaction oldact;
+
 
 
 void handle_SIGINT(int signo){
   sigint_flag = 1;
 }
+
 
 
 int main(int argc, char *argv[])
@@ -115,20 +119,43 @@ int main(int argc, char *argv[])
    // }
 
     /* TODO: prompt */
+
+    sigint_sa.sa_handler = handle_SIGINT;
+    sigtstp_sa.sa_handler = handle_SIGINT;
+    //sigfillset(&sigint_sa.sa_mask);
+    //sigfillset(&sigtstp_sa.sa_mask);
+    //sigint_sa.sa_flags = 0;
+    //sigtstp_sa.sa_flags = 0;
+      
+    sigaction(SIGINT, &sigint_sa, NULL);
+    sigaction(SIGTSTP, &sigtstp_sa, NULL);
+
 prompt:;
+    if (feof(input)) {
+      exit(0);
+    }
+
+
     sigint_flag = 0;
     if (input == stdin) {  //Interactive
       char *ps1 = getenv("PS1");
       fprintf(stderr, "%s", ps1);
 
       
-      sh_sigs.sa_handler = handle_SIGINT;
-      sigfillset(&sh_sigs.sa_mask);
-      sh_sigs.sa_flags = 0;
+     // sigint_sa.sa_handler = handle_SIGINT;
+      //sigtstp_sa.sa_handler = handle_SIGINT;
+     // sigfillset(&sigint_sa.sa_mask);
+    //  sigfillset(&sigtstp_sa.sa_mask);
+    //  sigint_sa.sa_flags = 0;
+     // sigtstp_sa.sa_flags = 0;
       
-      sigaction(SIGINT, &sh_sigs, NULL);
-      ignore_action.sa_handler = SIG_IGN;
-      sigaction(SIGTSTP, &ignore_action, NULL);
+      //sigaction(SIGINT, &sigint_sa, NULL);
+      //sigaction(SIGTSTP, &sigtstp_sa, NULL);
+
+      sigint_ignore_action.sa_handler = SIG_IGN;
+      sigtstp_ignore_action.sa_handler = SIG_IGN;
+      
+      sigaction(SIGTSTP, &sigtstp_ignore_action, NULL);
 
       
       ssize_t line_len = getline(&line, &n, input);
@@ -136,7 +163,17 @@ prompt:;
       errno = 0;
 
     //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
-    
+      
+      
+      //printf("LINE LEN: %lu\n", line_len);
+      //printf("SIG_INT FLAG: %d\n", sigint_flag);
+
+      if (line_len < 0 && sigint_flag == 0) {
+        exit(0);
+      }
+
+
+
       if (sigint_flag != 0 && line_len < 0){
         fprintf(stderr, "\n");
         goto prompt;
@@ -146,7 +183,7 @@ prompt:;
       //ignore_action.sa_handler = SIG_IGN;
 
       //sigaction(SIGTSTP, &ignore_action, NULL); //ignore
-      sigaction(SIGINT, &ignore_action, NULL);
+      sigaction(SIGINT, &sigint_ignore_action, NULL);
       goto linecheck;
      
     
@@ -385,8 +422,24 @@ linecheck:;
             */
            
             //Reset signals
-            sigaction(SIGINT, &sh_sigs, NULL);
-            sigaction(SIGTSTP , &sh_sigs, NULL);
+            /*
+             I Have tried all these:
+
+            Method 1:
+            sigaction(SIGINT, &sigint_sa, NULL);
+            sigaction(SIGTSTP, &sigtstp_sa, NULL);
+             
+            Method 2:
+            sigaction(SIGINT, &oldact, NULL);
+            sigaction(SIGTSTP , &oldact, NULL);
+
+
+            Method 3:
+            oldact.sa_handler = handle_SIGINT;
+            sigaction(SIGINT, &oldact, NULL);
+            sigaction(SIGTSTP , &oldact, NULL);
+
+            */
 
             
             int j = 0;
