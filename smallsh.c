@@ -46,8 +46,8 @@ char *redirection_files[MAX_WORDS];
 
 struct sigaction sigint_sa = {0}, sigint_ignore_action = {0};
 struct sigaction sigtstp_sa = {0}, sigtstp_ignore_action = {0};
-struct sigaction oldact;
-
+struct sigaction sigint_restore;
+struct sigaction sigtstp_restore;
 
 
 void handle_SIGINT(int signo){
@@ -127,8 +127,8 @@ int main(int argc, char *argv[])
     //sigint_sa.sa_flags = 0;
     //sigtstp_sa.sa_flags = 0;
       
-    sigaction(SIGINT, &sigint_sa, NULL);
-    sigaction(SIGTSTP, &sigtstp_sa, NULL);
+    sigaction(SIGINT, &sigint_sa, &sigint_restore);
+    sigaction(SIGTSTP, &sigtstp_sa, &sigtstp_restore);
 
 prompt:;
     if (feof(input)) {
@@ -422,6 +422,8 @@ linecheck:;
             */
            
             //Reset signals
+            sigaction(SIGINT, &sigint_restore, NULL);
+            sigaction(SIGTSTP, &sigtstp_restore, NULL);
             /*
              I Have tried all these:
 
@@ -907,8 +909,13 @@ expand(char const *word)
 
     }else if (c == '{') {
       //build_str(start+2, NULL);
+      char *old_val = build_str(NULL, NULL);
+      //build_str(test, NULL);
+   
       char *var_name = build_str(start+2, end-1);  //Grab variable name
-      build_str(NULL, NULL);   //Rest build_str
+      //build_str(NULL, NULL);   //Rest build_str
+      build_str(NULL, NULL);
+      build_str(old_val, NULL);
       char *env = getenv(var_name);
       
       //build_str("<Parameter: ", NULL);
