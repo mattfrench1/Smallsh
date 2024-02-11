@@ -917,9 +917,11 @@ expand(char const *word)
       build_str(NULL, NULL);
       build_str(old_val, NULL);
       char *env = getenv(var_name);
-      
+       
       //build_str("<Parameter: ", NULL);
-      build_str(env, NULL);
+      if (env != NULL) {
+        build_str(env, NULL);
+      }
       //build_str(">", NULL);
     }
     pos = end;
