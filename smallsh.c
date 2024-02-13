@@ -1,11 +1,34 @@
 /*
-References:
+References: (Everything I used for this assignment)
+
 asprintf(): https://c-for-dummies.com/blog/?p=3934
             https://stackoverflow.com/questions/12746885/why-use-asprintf-instead-of-sprintf
 
+Man Pages:
 getenv(3): https://man7.org/linux/man-pages/man3/getenv.3.html
- */
+waitpid(3p): https://man7.org/linux/man-pages/man3/waitpid.3p.html
+wait(3p): https://man7.org/linux/man-pages/man3/wait.3p.html
+kill(2): https://man7.org/linux/man-pages/man2/kill.2.html
+W* Macros: https://linux.die.net/man/2/waitpid
+sigaction(2): https://man7.org/linux/man-pages/man2/sigaction.2.html
+clearerr(3p): https://man7.org/linux/man-pages/man3/clearerr.3p.html
+atoi(3): https://man7.org/linux/man-pages/man3/atoi.3.html
+chdir(2): https://man7.org/linux/man-pages/man2/chdir.2.html
+exec(3p): https://man7.org/linux/man-pages/man3/exec.3p.html
+execvp(3): https://linux.die.net/man/3/execvp
 
+CS-374 Modules:
+Exploration: Process API – Creating and Terminating Processes
+Exploration: Process API - Monitoring Child Processes
+Exploration: Process API - Executing a New Program
+Exploration: Signal Handling API
+Exploration: Processes and I/O
+
+Office Hours:
+Jackson Bohrer
+Ninad Anklesaria
+
+ */
 
 
 #define _POSIX_C_SOURCE 200809L
@@ -50,6 +73,7 @@ struct sigaction sigint_restore;
 struct sigaction sigtstp_restore;
 
 
+/* Signal handler function, sets flag if used */
 void handle_SIGINT(int signo){
   sigint_flag = 1;
 }
@@ -58,8 +82,7 @@ void handle_SIGINT(int signo){
 
 int main(int argc, char *argv[])
 {
-  //pid_t spawnpid = -5;
-  //int childStatus;
+
 
   FILE *input = stdin;
   char *input_fn = "(stdin)";
@@ -75,58 +98,40 @@ int main(int argc, char *argv[])
   size_t n = 0;
   for (;;) {
 
-    background_flag = 0;
+    
+    background_flag = 0;  //reset flags
     redirection_flag = 0;
 
     if (feof(input)) {
       exit(0);
     }
 
-//prompt:;
-    /* TODO: Manage background processes */
-
-    int waitpid_res = waitpid(0, &childStatus, WNOHANG | WUNTRACED);
-    //printf("WAITPID_RES: %d\n", waitpid_res);
-
+    /* Manage background processes*/
+    int waitpid_res = waitpid(0, &childStatus, WNOHANG | WUNTRACED);  //Have to use WNOHANG/WUNTRACED
+   
     if (waitpid_res > 0) {
+      if (WIFSTOPPED(childStatus)) {
+        fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+        kill(spawnpid, SIGCONT);
+      }
 
+      if (WIFSIGNALED(childStatus)) {
+        status = WTERMSIG(childStatus);
+        fprintf(stderr, "Child process %d done. Signaled %d.\n", spawnpid, status);
+      }
 
-
-    if (WIFSTOPPED(childStatus)) {
-      fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
-      kill(spawnpid, SIGCONT);
-
-    }
-
-    if (WIFSIGNALED(childStatus)) {
-      status = WTERMSIG(childStatus);
-      fprintf(stderr, "Child process %d done. Signaled %d.\n", spawnpid, status);
-
-    }
-
-    if (WIFEXITED(childStatus)) {
-      status = WEXITSTATUS(childStatus);
-      fprintf(stderr, "Child process %d done. Exit status %d.\n", spawnpid, status);
-
-    }
+      if (WIFEXITED(childStatus)) {
+        status = WEXITSTATUS(childStatus);
+        fprintf(stderr, "Child process %d done. Exit status %d.\n", spawnpid, status);
+      }
     }
      
-    //pid_t spawnpid = -5;
-    //spawnpid = fork();
 
-    //if (feof(input) == 0) {   //exit with status 0 once end of file is reached
-    //  exit(0);
-   // }
-
-    /* TODO: prompt */
-
+    /* Set sigaction struct's signal handler functions */
     sigint_sa.sa_handler = handle_SIGINT;
     sigtstp_sa.sa_handler = handle_SIGINT;
-    //sigfillset(&sigint_sa.sa_mask);
-    //sigfillset(&sigtstp_sa.sa_mask);
-    //sigint_sa.sa_flags = 0;
-    //sigtstp_sa.sa_flags = 0;
-      
+    
+    /* Call sigaction() to set signals & use oldact to later reset signals*/
     sigaction(SIGINT, &sigint_sa, &sigint_restore);
     sigaction(SIGTSTP, &sigtstp_sa, &sigtstp_restore);
 
@@ -135,161 +140,62 @@ prompt:;
       exit(0);
     }
 
-
     sigint_flag = 0;
     if (input == stdin) {  //Interactive
       char *ps1 = getenv("PS1");
       fprintf(stderr, "%s", ps1);
 
-      
-     // sigint_sa.sa_handler = handle_SIGINT;
-      //sigtstp_sa.sa_handler = handle_SIGINT;
-     // sigfillset(&sigint_sa.sa_mask);
-    //  sigfillset(&sigtstp_sa.sa_mask);
-    //  sigint_sa.sa_flags = 0;
-     // sigtstp_sa.sa_flags = 0;
-      
-      //sigaction(SIGINT, &sigint_sa, NULL);
-      //sigaction(SIGTSTP, &sigtstp_sa, NULL);
-
+      /* Set ignore actions */
       sigint_ignore_action.sa_handler = SIG_IGN;
       sigtstp_ignore_action.sa_handler = SIG_IGN;
       
-      sigaction(SIGTSTP, &sigtstp_ignore_action, NULL);
+      sigaction(SIGTSTP, &sigtstp_ignore_action, NULL); //Always ignore SIGTSTP
 
-      
       ssize_t line_len = getline(&line, &n, input);
       clearerr(input);
       errno = 0;
 
-    //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
-      
-      
-      //printf("LINE LEN: %lu\n", line_len);
-      //printf("SIG_INT FLAG: %d\n", sigint_flag);
-
       if (line_len < 0 && sigint_flag == 0) {
-        exit(0);
+        exit(0);  //EOF
       }
 
-
-
+      /* Jump back to prompt if SIGINT is detected in input*/
       if (sigint_flag != 0 && line_len < 0){
         fprintf(stderr, "\n");
         goto prompt;
       }
 
-      
-      //ignore_action.sa_handler = SIG_IGN;
-
-      //sigaction(SIGTSTP, &ignore_action, NULL); //ignore
-      sigaction(SIGINT, &sigint_ignore_action, NULL);
+      sigaction(SIGINT, &sigint_ignore_action, NULL);  //Now, always ignore SIGINT
       goto linecheck;
-     
-    
-      
-      
-
     }
 
-  
-    //sigint_flag = 0;
-    //sh_sigs.sa_handler = handle_SIGINT;
-    //sh_sigs.sa_handler = handle_SIGINT;
-    //sigfillset(&sh_sigs.sa_mask);
-    //sh_sigs.sa_flags = 0;
-    //sigaction(SIGINT, &sh_sigs, NULL);
 
-
-
-    
-    
     ssize_t line_len = getline(&line, &n, input);  //n = buffer or size
-    
-    //fprintf(stderr,"LINE LEN: %lu\n", line_len);
-
-    //ignore_action.sa_handler = SIG_IGN;
-    //sigaction(SIGINT, &ignore_action, NULL);
-    
-    //reset clearerr/erro
-    //clearerr(input);
-    //errno = 0;
-    //fprintf(stderr,"SIGINT_FLAG: %d\n", sigint_flag);
-    
-    //if (sigint_flag != 0 && line_len < 0){
-     // goto prompt;
-   // }
-
-    //printf("LINE_LEN: %lu\n", line_len);
-
-    //printf("EOF INPUT: %d\n", feof(input));
-    //printf("EOF STDIN: %d\n", feof(stdin));
 
 linecheck:;
     if (line_len < 0)  {
-      //err(1, "%s", input_fn);
-                          //hand eof here?
       break;
     }
     
-    
-    //printf("INPUT: %s\n", line);
-    
-   
-    //fork();
-
-    
-
-    
     size_t nwords = wordsplit(line);
     
-    
-
     if (words[nwords-1] != NULL) {
-    if (strcmp(words[nwords-1], "&") == 0) {
-      background_flag = 1;     //Set background flag
-      words[nwords-1] = NULL;
-      nwords --;
-    }
-    }
-
-   
-    for (size_t i = 0; i < nwords; i++) {
-      if (words[i] != NULL) {
-      char *exp_word = expand(words[i]);  //replace words with expanded words
-      free(words[i]);
-      words[i] = exp_word;
-
-    
+      if (strcmp(words[nwords-1], "&") == 0) {
+        background_flag = 1;     //Set background flag
+        words[nwords-1] = NULL;
+        nwords --;
       }
     }
 
-    
-
-
-    //for (size_t i = 0; i < nwords; i++) {
-    //  printf("VAL: %s\n", words[i]);
-   // }
-  
-  
+    for (size_t i = 0; i < nwords; i++) {
+      if (words[i] != NULL) {
+        char *exp_word = expand(words[i]);  //replace words with expanded words
+        free(words[i]);
+        words[i] = exp_word;
+      }
+    }
 
     if (nwords > 0){
-   
-      
-      //char *first_word = words[0];
-      
-      //if (first_word[0] == '_') {
-      //  char replaced_word[strlen(first_word)];
-      //  int j = 0;
-      //  for (int i = 1; i < strlen(first_word); i++){
-      //    replaced_word[j] = first_word[i];
-      //    j ++;
-      //  }
-      //  free(words[0]);
-      //  words[0] = replaced_word;
-        //printf("NEW WORD: %s\n", words[0]);
-     // }
-
       if (words[0] == NULL) {
         continue;
       }
@@ -302,51 +208,21 @@ linecheck:;
             int int_val = atoi(words[1]);
             if (int_val == 0 && strcmp(words[1], "0") != 0) {
               errx(1, "given exit status is not an int value");
-            } else {
-             
-  
 
-              exit(int_val);
+            } else {
+              exit(int_val);  //Exit with given status
             }
 
         } else {
           errx(1, "too many arguments");
         }
        
-      
-
-
-
-      }else if (strcmp(words[0], "cd") == 0) {
+      } else if (strcmp(words[0], "cd") == 0) {
         if (nwords == 1) {
-          char *home_env = getenv("HOME");
-          //printf("HOME: %s\n", home_env);
-          //char cwd[1024];
-          //getcwd(cwd, sizeof(cwd));
-          //printf("WE ARE HERE: %s\n", cwd);
+          char *home_env = getenv("HOME");  //No arguments defaults to home
           chdir(home_env);
 
-          //char nwd[1024];
-          //getcwd(nwd, sizeof(nwd));
-          //printf("WE ARE NOW HERE: %s\n", nwd);
-
-        }else if (nwords == 2) {
-          //system("ls");
-          build_str(NULL, NULL);
-          //char *new_env = getenv(words[1]);
-          //printf("NEW ENV: %s\n", new_env);
-          
-          //following lines currenntly work
-          //char cwd[1024];
-          //getcwd(cwd, sizeof(cwd));
-          //build_str(cwd, NULL);
-          //build_str("/", NULL);  //dont need
-          //char *new_env = build_str(words[1], NULL);
-          
-          //printf("ENV: %s\n", new_env);
-        
-          //printf("WE ARE HERE: %s\n", cwd);
-          
+        } else if (nwords == 2) {
           char *new_env = words[1];
           int chdir_result = chdir(new_env);
 
@@ -354,15 +230,12 @@ linecheck:;
             errx(1, "invalid directory");
           }
 
-          //char nwd[1024];
-          //getcwd(nwd, sizeof(nwd));
-          //printf("WE ARE NOW HERE: %s\n", nwd);
-
         }else {
           errx(1, "too many arguments");
         }
+
       }else{
-        //printf("FORKING!\n");
+        /* Fork if command is not cd/exit */
         spawnpid = fork();
         
         switch (spawnpid) {
@@ -372,389 +245,170 @@ linecheck:;
                   }
 
           case 0: {
-            //char *first_word = words[0];
-      
-            
-
-            //for (size_t i = 0; i < nwords; i++) {
-            //  printf("WORDS: %s\n", words[i]);
-           // }
-
-            /*
-            build_str(NULL, NULL);
-            build_str("/bin/", NULL);
-            char *exec_cmd = build_str(words[0], NULL);
-
-            if (strcmp(words[0], "echo") == 0) {
-            //char *exec_cmd = build_str(words[0], NULL);
-            //char *newargv[] = {exec_cmd, NULL};
-            char *newargv[nwords+1];
-            newargv[0] = exec_cmd;
-            newargv[nwords] = NULL;
-
-            for (size_t i = 1; i <= nwords; i++) {
-              newargv[i] = words[i];
-            }
-            exec_err = execv(newargv[0], newargv);
-            //perror("execv");
-            //exit(2);
-            
-
-
-            }else{
-            char *newargv[] = {exec_cmd, NULL};
-            exec_err = execv(newargv[0], newargv);
-            //perror("execv");
-            //exit(2);
-            
-
-
-            }
-            
-            if (exec_err != 0) {
-            for (size_t i = 0; i < nwords; ++i) {
-              char *exp_word = expand(words[i]);
-              free(words[i]);
-              words[i] = exp_word;
-              fprintf(stderr, "%s\n", words[i]);
-            }
-            }
-            */
+          /* Child process */
            
             //Reset signals
             sigaction(SIGINT, &sigint_restore, NULL);
             sigaction(SIGTSTP, &sigtstp_restore, NULL);
-            /*
-             I Have tried all these:
-
-            Method 1:
-            sigaction(SIGINT, &sigint_sa, NULL);
-            sigaction(SIGTSTP, &sigtstp_sa, NULL);
-             
-            Method 2:
-            sigaction(SIGINT, &oldact, NULL);
-            sigaction(SIGTSTP , &oldact, NULL);
-
-
-            Method 3:
-            oldact.sa_handler = handle_SIGINT;
-            sigaction(SIGINT, &oldact, NULL);
-            sigaction(SIGTSTP , &oldact, NULL);
-
-            */
-
-            
+           
+            /* Add redirection commands to one array and corresponding files to another */
             int j = 0;
             for (size_t i = 0; i < nwords; i++) {
               if (words[i] != NULL) {
-
                 if (strcmp(words[i], "<") == 0){
                   if (i+1 < nwords) {
                     redirection_symbols[j] = words[i];
-          
                     redirection_files[j] = words[i+1];
-
-          
-        
-                  words[i] = NULL;
-                  words[i+1] = NULL;
-                  j ++;
-                  redirection_flag = 1;
+                    words[i] = NULL;
+                    words[i+1] = NULL;
+                    j ++;
+                    redirection_flag = 1;
                   }
 
-              }else if (strcmp(words[i], ">") == 0) {
-                if (i+1 < nwords) {
-                  redirection_symbols[j] = words[i];
-                  redirection_files[j] = words[i+1];
-                  words[i] = NULL;
-                  words[i+1] = NULL;
-                  j ++;
-                  redirection_flag = 1;
+                } else if (strcmp(words[i], ">") == 0) {
+                    if (i+1 < nwords) {
+                      redirection_symbols[j] = words[i];
+                      redirection_files[j] = words[i+1];
+                      words[i] = NULL;
+                      words[i+1] = NULL;
+                      j ++;
+                      redirection_flag = 1;
+                    }
+
+                } else if (strcmp(words[i], ">>") == 0) {
+                    if (i+1 < nwords) {
+                      redirection_symbols[j] = words[i];
+                      redirection_files[j] = words[i+1];
+                      words[i] = NULL;
+                      words[i+1] = NULL;
+                      j ++;
+                      redirection_flag = 1;
+                    }
                 }
-              }else if (strcmp(words[i], ">>") == 0) {
-                if (i+1 < nwords) {
-                  redirection_symbols[j] = words[i];
-                  redirection_files[j] = words[i+1];
-                  words[i] = NULL;
-                  words[i+1] = NULL;
-                  j ++;
-                  redirection_flag = 1;
-                }
-              }
-    
-    
             }
           }
           
-
             redirection_arr_size = j;
-            //printf("REDIRECTIOM ARR SIZE: %d\n", redirection_arr_size);
-            //for (int i = 0; i < redirection_arr_size; i++) {
-            //  printf("REDIRECTION VAL: %s // REDIRECTION FILE: %s\n", redirection_symbols[i], redirection_files[i]); 
-            //}
-
-
-
+          
             if (redirection_flag != 0) {   //use redirection commands
-            for (int i = 0; i < redirection_arr_size; i++) {
-              if (strcmp(redirection_symbols[i], "<") == 0){
+              for (int i = 0; i < redirection_arr_size; i++) {
+                if (strcmp(redirection_symbols[i], "<") == 0){               
+                  int new_fd = open(redirection_files[i], O_RDONLY);   //Only want to open for reading
+                  
+                  if (new_fd == -1) {
+                    perror("cannot open file");
+                    exit(1);
+                  }
                 
-                int new_fd = open(redirection_files[i], O_RDONLY);   //Only want to open for reading
-                
-                if (new_fd == -1) {
-                  perror("cannot open file");
-                  exit(1);
-                }
-                
-                int dup_res = dup2(new_fd, 0);
-                if (dup_res == -1){
-                  perror("new file dupe()");
-                  exit(2);
-                }
+                  int dup_res = dup2(new_fd, 0);   //Use dup2 to change stdin stream
+                  if (dup_res == -1){
+                    perror("new file dupe()");
+                    exit(2);
+                  }
              
                 close(new_fd);
           
-              }else if (strcmp(redirection_symbols[i], ">") == 0) {
-                int new_fd = open(redirection_files[i], O_WRONLY | O_CREAT | O_TRUNC, 0777);
+              } else if (strcmp(redirection_symbols[i], ">") == 0) {
+                  int new_fd = open(redirection_files[i], O_WRONLY | O_CREAT | O_TRUNC, 0777);  //Open to write
                 
-                if (new_fd == -1) {
-                  perror("cannot open file");
-                  exit(1);
-                }
+                  if (new_fd == -1) {
+                    perror("cannot open file");
+                    exit(1);
+                  }
 
-               int dup_res = dup2(new_fd, 1);
-               if (dup_res == -1) {
-                perror("new file dupe()");
-                exit(2);
-               }
-                close(new_fd);
+                  int dup_res = dup2(new_fd, 1);  //Use dup2 to change stdout
+                  if (dup_res == -1) {
+                    perror("new file dupe()");
+                    exit(2);
+                  }
 
-              }else if (strcmp(redirection_symbols[i], ">>") == 0) {
-                int new_fd = open(redirection_files[i], O_WRONLY | O_CREAT | O_APPEND, 0777);
+                  close(new_fd);
 
-               if (new_fd == -1) {
-                  perror("cannot open file");
-                  exit(1);
-                }
+              } else if (strcmp(redirection_symbols[i], ">>") == 0) {
+                  int new_fd = open(redirection_files[i], O_WRONLY | O_CREAT | O_APPEND, 0777);
 
-               int dup_res = dup2(new_fd, 1);
-               if (dup_res == -1) {
-                perror("new file dupe()");
-                exit(2);
-               }
-                close(new_fd);
+                  if (new_fd == -1) {
+                    perror("cannot open file");
+                    exit(1);
+                  }
 
+                  int dup_res = dup2(new_fd, 1);
+                  if (dup_res == -1) {
+                    perror("new file dupe()");
+                    exit(2);
+                  }
+                  close(new_fd);
               }
-
             }
            
             
-            execvp(words[0], words);
-            perror("execvp");
-            exit(2);
-
+              execvp(words[0], words);  //Use execvp on words array that was modified due to redirection 
+              perror("execvp");
+              exit(2);
             }
 
 
+            /* Create new array with words array values that is null terminated */
             char *newargv[nwords+1];
             for (size_t i = 0; i < nwords; i++) {
               newargv[i] = words[i];
             }
             newargv[nwords] = NULL;
-
-           // for (size_t i = 0; i < nwords+1; i++) {
-           //   printf("ARR: %s\n", newargv[i]);
-           // }
-
-            //if (strcmp(newargv[0], "_exit") == 0){
-            //  int int_val = atoi(newargv[1]);
-            //  if (int_val == 0 && strcmp(newargv[1], "0") != 0) {
-            //    errx(1, "given exit status is not an int value");
-            //  }
-              //status = int_val;
-
-              //for (size_t i = 0; i < nwords; i++) {
-              //char *exp_word = expand(words[i]);  //Update status in words
-              //free(words[i]);
-              //words[i] = exp_word;
-              //}
-              
-           //   exit(status);
-          //  }
   
-
             execvp(newargv[0], newargv);   //Success here means child exited normally
             perror("execvp");
             exit(2);
 
             break;
                   }
+
+
            default: {
+            /* Parent process here */
             if (background_flag == 0) {
-            spawnpid = waitpid(spawnpid, &childStatus, WUNTRACED);    //only wait if background process flag not set
+              spawnpid = waitpid(spawnpid, &childStatus, WUNTRACED);    //only wait if background process flag not set
             
-            if (WIFSTOPPED(childStatus)) {
-              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
-
-              kill(spawnpid, SIGCONT);
-            }
-
+              if (WIFSTOPPED(childStatus)) {
+                fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+                kill(spawnpid, SIGCONT);
+              }
 
              if (WIFEXITED(childStatus)) {
-              //printf("BACKGROUND PROCESS: %d\n", background_process);
-
-              status = WEXITSTATUS(childStatus);
+              status = WEXITSTATUS(childStatus);  //Update status if child exited properly
              }
 
-            if (WIFSIGNALED(childStatus)){
-          
+             if (WIFSIGNALED(childStatus)){          
               status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+             }
+
+            } else {
+
+              if (WIFSTOPPED(childStatus)) {
+                fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
+                kill(spawnpid, SIGCONT);
               }
 
-
-
-            }else{
-
-       
-            
-            //background_process = spawnpid;
-            if (WIFSTOPPED(childStatus)) {
-              fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
-
-              kill(spawnpid, SIGCONT);
-            }
-
-            if (WIFSIGNALED(childStatus)){
-          
-              status = WTERMSIG(childStatus) + 128;    //Only use if signaled
+              if (WIFSIGNALED(childStatus)){          
+                status = WTERMSIG(childStatus) + 128;    //Only use if signaled
               }
-
-
             }
-            background_process = spawnpid;
 
-            //printf("MADE IT TO HERE");
-
-            //if (WIFSTOPPED(childStatus)) {
-            //  fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnpid);
-           // }
-
-            //if (WIFSIGNALED(childStatus)) {
-              //printf("WIFSIGNALED");
-           // }
-           
-           // if (WIFEXITED(childStatus)) {
-              //printf("BACKGROUND PROCESS: %d\n", background_process);
-
-             // status = WEXITSTATUS(childStatus);
-              //background_process = spawnpid;
-              //printf("BACKGROUND PROCESS: %d\n", background_process);
-              //printf("USING EXPANSION: %s\n", expand("$!"));
-
-             // for (size_t i = 0; i < nwords; i ++) {
-              //  if (words[i] != NULL){
-              //    char *exp_word = expand(words[i]);  //replace words with expanded words
-              //    free(words[i]);
-              //    words[i] = exp_word;
-            //    }
-             // }
-
-              //for (size_t i = 0; i < nwords; i++) {
-                //printf("VAL: %s\n", words[i]);
-              //}
-              
-              //printf("MADE IT TO HERE");
-            //}   //Removed an else here
-
-
-            //if (WIFSIGNALED(childStatus)){
-              //printf("MADE IT TO HERE");
-              //status = WTERMSIG(childStatus) + 128;    //Only use if signaled
-              //}
-              //background_process = spawnpid;
-
-              //for (size_t i = 0; i < nwords; i ++) {
-                //if (words[i] != NULL){
-                  //char *exp_word = expand(words[i]);  //replace words with expanded words
-                  //free(words[i]);
-                  //words[i] = exp_word;
-                //}
-             
-              //for (size_t i = 0; i < nwords; i++) {
-              //  printf("VAL: %s\n", words[i]);
-              //}
-  
-
-              //}
-              //printf("BACKGROUND PROCESS: %d\n", background_process);
-              //printf("WTERMSIG: %d\n",WTERMSIG(childStatus));
-            
-            
-            //printf("CHILD STATUS: %d\n", childStatus);
-            //
-
-           // for (size_t i = 0; i < nwords; i++) {   //clean out words
-           //   free(words[i]);
-           //   words[i] = NULL;
-           // }
-            
-            
+            background_process = spawnpid;  //Update background process to latest child process created           
             break;
                     }
 
-
-           for (size_t i = 0; i < nwords; i++) {   //clean out words
+           /* Clean out words array */
+           for (size_t i = 0; i < nwords; i++) {  
               free(words[i]);
               words[i] = NULL;
-            }
-           
-
+           }
         }
-
-
-
-
-
-    
-//    for (size_t i = 0; i < nwords; ++i) {
-      //if (strcmp(words[i], "exit") == 0 && i == 0) {
-      //  exit(0);
-      //}
-
-      //else if (strcmp(words[i], "cd") == 0 && i == 0) {
-       // if (nwords == 1) {  //if no arg with cd, then cd home
-        //   char *home_env = getenv("HOME");
-        //   printf("HOME: %s\n", home_env);
-         //  char cwd[1024];
-          // getcwd(cwd, sizeof(cwd));
-           //printf("WE ARE HERE: %s\n", cwd);
-          // chdir(home_env);
-
-          // char nwd[1024];
-          // getcwd(nwd, sizeof(nwd));
-          // printf("WE ARE NOW HERE: %s\n", nwd);
-       // }else if (nwords == 2) {
-         // printf("SECOND: %s\n", words[1]);
-          
-       // }else{
-        //  errx(1, "too many arguments");        
-       // }
-     // } else {
-      //  fork();
-     // }
-      //fprintf(stderr, "Word %zu: %s\n", i, words[i]);
-//      char *exp_word = expand(words[i]);
-//      free(words[i]);
-//      words[i] = exp_word;
-      //fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
-//      fprintf(stderr, "%s\n", words[i]);
-//    }
-
     }
     }
   }
    
 }
+
 
 char *words[MAX_WORDS] = {0};
 
@@ -876,53 +530,40 @@ expand(char const *word)
   build_str(pos, start);
 
   while (c) {
-    if (c == '!'){
-      
+    if (c == '!'){    
       char *background_proc_str = NULL;
       if (background_process == 0) {  //No background = empty string
         build_str("", NULL);
-      }else{
-      
-      asprintf(&background_proc_str, "%d", background_process);
-      build_str(background_proc_str, NULL);
-      free(background_proc_str);
+
+      } else {    
+        asprintf(&background_proc_str, "%d", background_process);  //Use asprintf to convert int to str
+        build_str(background_proc_str, NULL);
+        free(background_proc_str);
       }
      
-    
-    }else if (c == '$'){
+    } else if (c == '$') {
       size_t pid = getpid();
       char *pid_str = NULL;
       asprintf(&pid_str, "%li", pid);
-      //build_str("<PID: ", NULL); 
       build_str(pid_str, NULL);
       free(pid_str);  //need to free pointer 
-      //build_str(">", NULL);
 
-    }else if (c == '?'){
-      //build_str("<STATUS: ", NULL);
+    } else if (c == '?') {
       char *status_str = NULL;
-      //asprintf(&status_str, "%d", status);
       asprintf(&status_str, "%d", status);
       build_str(status_str, NULL);
       free(status_str);
-      //build_str(">", NULL);
 
-    }else if (c == '{') {
-      //build_str(start+2, NULL);
-      char *old_val = build_str(NULL, NULL);
-      //build_str(test, NULL);
-   
+    } else if (c == '{') {
+      char *old_val = build_str(NULL, NULL);  //Need to first save current value in build_str
       char *var_name = build_str(start+2, end-1);  //Grab variable name
-      //build_str(NULL, NULL);   //Rest build_str
-      build_str(NULL, NULL);
+      build_str(NULL, NULL); //Reset build_str
       build_str(old_val, NULL);
       char *env = getenv(var_name);
-       
-      //build_str("<Parameter: ", NULL);
       if (env != NULL) {
         build_str(env, NULL);
       }
-      //build_str(">", NULL);
+    
     }
     pos = end;
     c = param_scan(pos, &start, &end);
